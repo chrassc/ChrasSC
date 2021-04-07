@@ -57,7 +57,86 @@
     </table>
   </div>
   <script>
-    var map = new
+    //initialize new Naver Map to div #map
+    var map = new naver.maps.Map("map", {
+      center: new naver.maps.LatLng(36.55753, 127.75409),
+      zoom: 8,
+      mapTypeControl: true,
+      zoomControl: true,
+      zoomControlOptions: {
+        position: naver.maps.Position.TOP_LEFT,
+        style: naver.maps.ZoomControlStyle.SMALL
+      }
+    })
+    //markers
+    var markers = [];
+    var infoWindows = [];
+    //visible area of map from NW to SE
+    var bounds = map.getBounds();
+    var northEast = bounds.getNE();
+    var southWest = bounds.getSW();
+    var lngSpan = northEast.lng() - Southwest.lng();
+    var latSpan = northEast.lat() - SouthWest.lat();
+
+    //adds event listener to update markers on the map upon changes to map
+    naver.maps.Event.addListener(map, 'idle', function () { updateMarkers(map, markers); });
+
+    //receives markers from markers array and updates on map
+    function updateMarkers(map, markers) {
+      let marker;
+      let position;
+      let i;
+      for (i in markers) {
+        marker = markers[i];
+        position = marker.getPosition();
+        if (bounds.hasLatLng(position){
+          showMarker(map, marker);
+        }
+        else {
+          hideMarker(map, marker);
+        }
+      }
+    }
+    //see fx updateMarkers
+    function showMarker(map, marker) {
+
+      if (marker.setMap()) return;
+      marker.setMap(map);
+    }
+    //see fx updateMarkers
+    function hideMarker(map, marker) {
+
+      if (!marker.setMap()) return;
+      marker.setMap(null);
+    }
+    // Return an event handler storing the marker index as a closure variable named seq.
+    function getClickHandler(seq) {
+      return function (e) {
+        var marker = markers[seq],
+          infoWindow = infoWindows[seq];
+
+        if (infoWindow.getMap()) {
+          infoWindow.close();
+        } else {
+          infoWindow.open(map, marker);
+        }
+      }
+    }
+
+    //@@@@@@@@@@@@@@@@@@@@@@use in a function that populates markers
+    for (var i = 0, ii = markers.length; i < ii; i++) {
+      naver.maps.Event.addListener(markers[i], 'click', getClickHandler(i));
+    }
+
+
+
+    //begin AJAX
+    async function ajaxCall(header){
+      let promise = new Promise(function(resolve, reject){
+        let xhr = new XMLHttpRequest();
+        xhr2.open("GET",)
+      })
+    }
     // //init map
     // var map = new naver.maps.Map("map", {
     //   center: new naver.maps.LatLng(36.55753, 127.75409),
