@@ -131,26 +131,16 @@
         naver.maps.Event.addListener(markers[i], 'click', getClickHandler(i));
       }
     }
+    //START of AJAX code
+    //used to store final object-array of all ajax calls (GIS call + each iterated Naver MAPS geocacher call)
+    var info;
 
-
-
-    let url = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode";
-      let id = "8l1v1v8ltg";
-      let key = "h54A6C6Ndio4LYulVxT2FGYaGCiD3QjwH8l91sQU";
-      let query = object.location_name;
-      //modify above as needed, do not change below unless header keys change
-      let queryHeader = url + "?" + encodeURIComponent("X-NCP-APIGW-API-KEY-ID") + "=" + encodeURIComponent(id);
-      queryHeader += "&" + encodeURIComponent("X-NCP-APIGW-API-KEY") + "=" + encodeURIComponent(key);
-      queryHeader += "&" + encodeURIComponent("query") + "=" + encodeURIComponent(query);
-
-
-
-    let ajaxHeaders = {
+    var ajaxData = {
       GIS: {
         url: "http://apis.data.go.kr/1741000/DisasterMsg2/getDisasterMsgList",
-        headers: {
-          "Service Key": "aN2aOKkivRPAL7ZlAtz6BKj%2FQcSYUvEvZVRk80qX0cTYMUEUAiGIx%2BslDNoLo1feNuxD6cSBgSaMO3B6tp%2FZvw%3D%3D",
-          "PageNo": "1",
+        data: {
+          "ServiceKey": "aN2aOKkivRPAL7ZlAtz6BKj/QcSYUvEvZVRk80qX0cTYMUEUAiGIx+slDNoLo1feNuxD6cSBgSaMO3B6tp/Zvw==",
+          "pageNo": "1",
           "numOfRows": "10",
           "type": "JSON",
           "flag": "Y"
@@ -158,7 +148,7 @@
       },
       geocacher: {
         url: "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode",
-        headers: {
+        data: {
           "X-NCP-APIGW-API-KEY-ID": "8l1v1v8ltg",
           "X-NCP-APIGW-API-KEY": "h54A6C6Ndio4LYulVxT2FGYaGCiD3QjwH8l91sQU",
           "query": ""
@@ -166,88 +156,45 @@
 
       }
     }
-    //INCOMPLETE begin AJAX with url and header
-    var ajaxCall = function(url, headers) {
+
+    //begin AJAX with url and header, returns a promise
+    var ajaxCall = function(url, data) {
       return $.ajax({
         url: url,
-        header: headers,
-        data: JSON.parse(data),
-        success: function 
-      });
-    }
-//       let promise = new Promise(function (resolve, reject) {
-//         let xhr = new XMLHttpRequest();
-//         let response;
-//         xhr.open("GET", url);
-//         xhr.onload = function () {
-//           if (this.readyState == 4 && this.status == 200) {
-//             response = JSON.parse(this.responseText);
-//             resolve(response);
-// //            console.log("response: " + response);
-//           }
-//           else {
-//             response = "error";
-//             reject(response)
-//             console.log("error in ajaxCall()")
-//           }
-//         }
-//         xhr.send();
-//       });
-
-
-    //ajax call for GIS data
-    function sendGIS() {
-      let url = "http://apis.data.go.kr/1741000/DisasterMsg2/getDisasterMsgList";
-      let sKey = "aN2aOKkivRPAL7ZlAtz6BKj%2FQcSYUvEvZVRk80qX0cTYMUEUAiGIx%2BslDNoLo1feNuxD6cSBgSaMO3B6tp%2FZvw%3D%3D";
-      let pageNo = 1;
-      let numOfRows = 10;
-      let type = "JSON";
-      let flag = "Y";
-      //modify above as needed, do not change below unless header keys change
-      let queryHeader = url + "?" + encodeURIComponent("ServiceKey") + "=" + sKey;
-      queryHeader += "&" + encodeURIComponent("pageNo") + "=" + encodeURIComponent(pageNo);
-      queryHeader += "&" + encodeURIComponent("numOfRows") + "=" + encodeURIComponent(numOfRows);
-      queryHeader += "&" + encodeURIComponent("type") + "=" + encodeURIComponent(type);
-      queryHeader += "&" + encodeURIComponent("flag") + "=" + encodeURIComponent(flag);
-      return queryHeader;
-      // let GISData = await ajaxCall(queryHeader);
-      // console.log(GISData);
-        // .then(function () {
-        // for (i in value.DisasterMsg[1].row){
-        //   let tBodyRef = document.getElementById("table").getElementsByTagName("tbody")[0];
-        //   let row = tBodyRef.insertRow();
-        //   let cell1 = row.insertCell(0);
-        //   let cell2 = row.insertCell(1);
-        //   let cell3 = row.insertCell(2);
-        //   cell1.innerHTML = cbsInfo[i].create_date;
-        //   cell2.innerHTML = cbsInfo[i].location_name;
-        //   cell3.innerHTML = cbsInfo[i].msg;
-        // }
-        // });
-
+        data: data,
+      })
     }
 
-    //ajax call for Naver MAPS geocacher, uses object returned from GIS data and converts location_name to lat and lng
-    function sendMapGeocache(object) {
-      let url = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode";
-      let id = "8l1v1v8ltg";
-      let key = "h54A6C6Ndio4LYulVxT2FGYaGCiD3QjwH8l91sQU";
-      let query = object.location_name;
-      //modify above as needed, do not change below unless header keys change
-      let queryHeader = url + "?" + encodeURIComponent("X-NCP-APIGW-API-KEY-ID") + "=" + encodeURIComponent(id);
-      queryHeader += "&" + encodeURIComponent("X-NCP-APIGW-API-KEY") + "=" + encodeURIComponent(key);
-      queryHeader += "&" + encodeURIComponent("query") + "=" + encodeURIComponent(query);
-      return queryHeader;
+    //used to return the GISResult JSON with coordinates added
+    function addressesToCoordinates(GISResult){
+      info = JSON.parse(GISResult).DisasterMsg[1].row;
+      for (let i = 0; i < info.length; i++){
+        (function(index){
+          //includes the location name of each location of iteration
+          let geocacherData = ajaxData.geocacher.data;
+          geocacherData.query = info[i].location_name;
+          let getGeocacher = ajaxCall(ajaxData.geocacher.url, geocacherData);
+          console.log("so far so good");
+          $.when(getGeocacher).then(function(result){
+            info[index].lat = result.y;
+            info[index].lng = result.x;
+          },
+          function(){
+            info[index].lat = "0";
+            info[index].lng = "0";
+          });
+        })(i);
+      }
     }
 
     function sendQuery() {
+      document.getElementById("button").innerText = "Please Wait...";
       document.getElementById("table").removeChild(document.getElementById("table").children[1]);
       document.getElementById("table").appendChild(document.createElement("tbody"));
-      ajaxCall(sendGIS()).then(resolve => {
-        GISData = resolve.DisasterMsg[1].row;
-        gVarTest = GISData;
-        console.log(gVarTest);
-      })
+      let getGIS = ajaxCall(ajaxData.GIS.url, ajaxData.GIS.data);
+      $.when(getGIS).then(addressesToCoordinates);
+      
+      
       document.getElementById("button").innerText = "Resend Query";
     }
   </script>
