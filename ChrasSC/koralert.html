@@ -37,14 +37,16 @@
       <li><a href="koralert.html">Korea Alert System</a></li>
     </ul>
   </nav>
-  <div id="demo">
+  <div id="demo" style="margin-left:auto;margin-right:auto">
     <h1>Korea Alert</h1>
     <h2>PLEASE WAIT ABOUT <b><span id="countdown"></span></b> SECONDS TO LOAD ALL DATA</h2>
     <button type="button" id="button" onclick="sendQuery()">Send Query</button>
-    <button type="button" id="button2" onclick="infoToMarkers()">Next Task</button>
+    <!-- <button type="button" id="button2" onclick="infoToMarkers()">Next Task</button> -->
   </div>
-  <div id="map" style="width:100%;height:800px;"></div>
-  <div class="content">
+  <div>
+    <div id="map" style="width:80%;height:800px;margin-left:auto;margin-right:auto"></div>
+    <div class="content">
+  </div>
     <table id="table">
       <thead>
         <tr>
@@ -63,7 +65,7 @@
     //initialize new Naver Map to div #map
     var map = new naver.maps.Map("map", {
       center: new naver.maps.LatLng(36.55753, 127.75409),
-      zoom: 8,
+      zoom: 7,
       mapTypeControl: true,
       zoomControl: true,
       zoomControlOptions: {
@@ -74,7 +76,7 @@
     //markers and info windows that display information when markers are clicked (see attachInfoToMarkers())
     var markers = [];
     var infoWindows = [];
-    //visible area of map from NW to SE
+    //visible area of map from NW to SE. used to find viewable region to display markers (see updateMarkers())
     var bounds = map.getBounds();
     var northEast = bounds.getNE();
     var southWest = bounds.getSW();
@@ -131,11 +133,11 @@
       }
     }
     //START of AJAX code
-    //used to store final object-array of all ajax calls (GIS call + each iterated Naver MAPS geocacher call)
+    //used to store final object-array of all ajax calls disaster call + each iterated Naver MAPS geocacher call)
     var info = [];
 
     var ajaxData = {
-      GIS: {
+      disaster: {
         url: "http://apis.data.go.kr/1741000/DisasterMsg2/getDisasterMsgList",
         data: {
           "ServiceKey": "aN2aOKkivRPAL7ZlAtz6BKj/QcSYUvEvZVRk80qX0cTYMUEUAiGIx+slDNoLo1feNuxD6cSBgSaMO3B6tp/Zvw==",
@@ -163,46 +165,52 @@
       })
     }
 
+    //variable to signal that all ajax calls complete (CURRENTLY NONFUNCTIONAL)
     var requestComplete = false;
+
+
     //main function to send query with each successive ajax requests/table updates/map updates
     window.onload = sendQuery();
     function sendQuery() {
+      //reset existing info
+      info = []
       document.getElementById("button").innerText = "Please Wait...";
       let timer = 20;
       requestComplete = false;
-      let countDown = setInterval(function(){
-        document.getElementById("countdown").innerHTML = timer;
+      let countDown = setInterval(function(){   
+      document.getElementById("countdown").innerHTML = timer;     
         if(timer <= 0 || requestComplete == true){
           clearInterval(countDown);
           document.getElementById("countdown").innerHTML = 0;
         }
-        timer-= 1;
+        timer-=1;
       }, 1000);
-      let getGIS = ajaxCall(ajaxData.GIS.url, ajaxData.GIS.data);
-      $.when(getGIS).then(updateFromGISResult);
+      let getDisaster = ajaxCall(ajaxData.disaster.url, ajaxData.disaster.data);
+      $.when(getDisaster).then(updateFromDisasterResult);
       setTimeout(infoToMarkers, 20000);
     }
 
-    //function upon promise return from GIS ajax call
+    //function upon promise return from Disaster ajax call
     //update table to show line items in reverse chronological order
-    //call function to append the main info variable with the original GISResult JSON in addition to coordinates using ajax calls to Naver MAPS Geocacher
-    function updateFromGISResult(getGISResult) {
-      let GISInfo = JSON.parse(getGISResult).DisasterMsg[1].row;
-      updateTable(GISInfo);
-      for (i in GISInfo) {
+    //call function to append the main info variable with the original disasterResult JSON in addition to coordinates using ajax calls to Naver MAPS Geocacher
+    function updateFromDisasterResult(getDisasterResult) {
+      //disaster returns as JSON string, must parse
+      let disasterInfo = JSON.parse(getDisasterResult).DisasterMsg[1].row;
+      updateTable(disasterInfo);
+      for (i in disasterInfo) {
         //init a variable to do ajax call for each result
         let tempAjaxGeo = ajaxData.geocacher;
-        tempAjaxGeo.data.query = GISInfo[i].location_name;
+        tempAjaxGeo.data.query = disasterInfo[i].location_name;
         let getGeocache = ajaxCall(tempAjaxGeo.url, tempAjaxGeo.data);
         //final format to eventually output to info
         let finalObj = {
-          create_date: GISInfo[i].create_date,
-          location_name: GISInfo[i].location_name,
-          msg: GISInfo[i].msg,
+          create_date: disasterInfo[i].create_date,
+          location_name: disasterInfo[i].location_name,
+          msg: disasterInfo[i].msg,
           lat: 0,
           lng: 0
         };
-        //upon retrieval of geocache result promise, push to main info array (see updateFromGISResult)
+        //upon retrieval of geocache result promise, push to main info array (see updateFromDisasterResult)
         $.when(getGeocache).then(function (getGeocacheResult) {
           finalObj.lat = getGeocacheResult.addresses[0].y;
           finalObj.lng = getGeocacheResult.addresses[0].x;
@@ -211,21 +219,21 @@
       }
     }
 
-    //update the table with new values with each successive sendQuery(), called at updateFromGISResult()
-    function updateTable(GISInfo) {
-      //upon successful retrieval of GIS data, reset table
+    //update the table with new values with each successive sendQuery(), called at updateFromDisasterResult()
+    function updateTable(disasterInfo) {
+      //upon successful retrieval of disaster data, reset table
       document.getElementById("table").removeChild(document.getElementById("table").children[1]);
       document.getElementById("table").appendChild(document.createElement("tbody"));
       document.getElementById("button").innerText = "Resend Query";
-      for (i in GISInfo) {
+      for (i in disasterInfo) {
         let tBodyRef = document.getElementById("table").getElementsByTagName("tbody")[0];
         let row = tBodyRef.insertRow();
         let cell1 = row.insertCell(0);
         let cell2 = row.insertCell(1);
         let cell3 = row.insertCell(2);
-        cell1.innerHTML = GISInfo[i].create_date;
-        cell2.innerHTML = GISInfo[i].location_name;
-        cell3.innerHTML = GISInfo[i].msg;
+        cell1.innerHTML = disasterInfo[i].create_date;
+        cell2.innerHTML = disasterInfo[i].location_name;
+        cell3.innerHTML = disasterInfo[i].msg;
       }
     }
 
