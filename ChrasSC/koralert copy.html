@@ -58,7 +58,7 @@
   </div>
   <script>
     var gVarTest;
-    
+
     //initialize new Naver Map to div #map
     var map = new naver.maps.Map("map", {
       center: new naver.maps.LatLng(36.55753, 127.75409),
@@ -101,13 +101,11 @@
     }
     //see fx updateMarkers
     function showMarker(map, marker) {
-
       if (marker.setMap()) return;
       marker.setMap(map);
     }
     //see fx updateMarkers
     function hideMarker(map, marker) {
-
       if (!marker.setMap()) return;
       marker.setMap(null);
     }
@@ -133,7 +131,7 @@
     }
     //START of AJAX code
     //used to store final object-array of all ajax calls (GIS call + each iterated Naver MAPS geocacher call)
-    var info;
+    var info = [];
 
     var ajaxData = {
       GIS: {
@@ -153,50 +151,69 @@
           "X-NCP-APIGW-API-KEY": "h54A6C6Ndio4LYulVxT2FGYaGCiD3QjwH8l91sQU",
           "query": ""
         }
-
       }
     }
 
-    //begin AJAX with url and header, returns a promise
-    var ajaxCall = function(url, data) {
+    //variable to init AJAX calls with url and header, returns a promise
+    var ajaxCall = function (url, data) {
       return $.ajax({
         url: url,
         data: data,
       })
     }
 
-    //used to return the GISResult JSON with coordinates added
-    function addressesToCoordinates(GISResult){
-      info = JSON.parse(GISResult).DisasterMsg[1].row;
-      for (let i = 0; i < info.length; i++){
-        (function(index){
-          //includes the location name of each location of iteration
-          let geocacherData = ajaxData.geocacher.data;
-          geocacherData.query = info[i].location_name;
-          let getGeocacher = ajaxCall(ajaxData.geocacher.url, geocacherData);
-          console.log("so far so good");
-          $.when(getGeocacher).then(function(result){
-            info[index].lat = result.y;
-            info[index].lng = result.x;
-          },
-          function(){
-            info[index].lat = "0";
-            info[index].lng = "0";
-          });
-        })(i);
+    //main function to send query with each successive ajax requests/table updates/map updates
+    function sendQuery() {
+      document.getElementById("button").innerText = "Please Wait...";
+      let getGIS = ajaxCall(ajaxData.GIS.url, ajaxData.GIS.data);
+      $.when(getGIS).then(updateFromGISResult);
+      document.getElementById("button").innerText = "Resend Query";
+    }
+
+    //function upon promise return from GIS ajax call
+    //update table to show line items in reverse chronological order
+    //call function to append the main info variable with the original GISResult JSON in addition to coordinates using ajax calls to Naver MAPS Geocacher
+    function updateFromGISResult(getGISResult) {
+      let GISInfo = JSON.parse(getGISResult).DisasterMsg[1].row;
+      updateTable(GISInfo);
+      for (i in GISInfo) {
+        //init a variable to do ajax call for each result
+        let tempAjaxGeo = ajaxData.geocacher;
+        tempAjaxGeo.data.query = GISInfo[i].location_name;
+        let getGeocache = ajaxCall(tempAjaxGeo.url, tempAjaxGeo.data);
+        let finalObj = {
+          create_date: GISInfo[i].create_date,
+          location_name: GISInfo[i].location_name,
+          msg: GISInfo[i].msg,
+          lat: 0,
+          lng: 0
+        };
+        $.when(getGeocache).then(function(result){
+          console.log(result);
+          finalObj.lat = result.addresses[0].y;
+          finalObj.lng = result.addresses[0].x;
+          info.push(finalObj);
+        })
       }
     }
 
-    function sendQuery() {
-      document.getElementById("button").innerText = "Please Wait...";
+    //update the table with new values with each successive sendQuery(), called at updateFromGISResult()
+    function updateTable(GISInfo){
+      //upon successful retrieval of GIS data, reset table
       document.getElementById("table").removeChild(document.getElementById("table").children[1]);
       document.getElementById("table").appendChild(document.createElement("tbody"));
-      let getGIS = ajaxCall(ajaxData.GIS.url, ajaxData.GIS.data);
-      $.when(getGIS).then(addressesToCoordinates);
-      
-      
-      document.getElementById("button").innerText = "Resend Query";
+      for (i in GISInfo){
+        let tBodyRef = document.getElementById("table").getElementsByTagName("tbody")[0];
+        let row = tBodyRef.insertRow();
+        let cell1 = row.insertCell(0);
+        let cell2 = row.insertCell(1);
+        let cell3 = row.insertCell(2);
+        cell1.innerHTML = GISInfo[i].create_date;
+        cell2.innerHTML = GISInfo[i].location_name;
+        cell3.innerHTML = GISInfo[i].msg;
+      }
     }
+
   </script>
 </body>
 
