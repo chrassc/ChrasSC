@@ -91,7 +91,7 @@
       let marker;
       let position;
       let i = 0;
-      for (i in markers) {
+      for (let i = 0; i < markers.length; i++) {
         marker = markers[i];
         position = marker.getPosition();
         if (bounds.hasLatLng(position)) {
@@ -128,7 +128,7 @@
 
     //assign each marker with its respective infoWindow
     function attachInfoToMarkers() {
-      for (let i = 0, ii = markers.length; i < ii; i++) {
+      for (let i = 0; i < markers.length; i++) {
         naver.maps.Event.addListener(markers[i], 'click', getClickHandler(i));
       }
     }
@@ -197,7 +197,7 @@
       //disaster returns as JSON string, must parse
       let disasterInfo = JSON.parse(getDisasterResult).DisasterMsg[1].row;
       updateTable(disasterInfo);
-      for (i in disasterInfo) {
+      for (let i = 0; i < disasterInfo.length; i++) {
         //init a variable to do ajax call for each result
         let tempAjaxGeo = ajaxData.geocacher;
         tempAjaxGeo.data.query = disasterInfo[i].location_name;
@@ -225,7 +225,7 @@
       document.getElementById("table").removeChild(document.getElementById("table").children[1]);
       document.getElementById("table").appendChild(document.createElement("tbody"));
       document.getElementById("button").innerText = "Resend Query";
-      for (i in disasterInfo) {
+      for (let i = 0; i < disasterInfo.length; i++) {
         let tBodyRef = document.getElementById("table").getElementsByTagName("tbody")[0];
         let row = tBodyRef.insertRow();
         let cell1 = row.insertCell(0);
@@ -239,7 +239,7 @@
 
     //uses main info array to create markers on map with infoWindow
     function infoToMarkers() {
-      for (i in info) {
+      for (let i = 0; i < info.length; i++) {
         let mark = info[i];
         let latlng = new naver.maps.LatLng(mark.lat, mark.lng);
         let marker = new naver.maps.Marker({
