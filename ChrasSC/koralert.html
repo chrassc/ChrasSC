@@ -142,7 +142,7 @@
         data: {
           "ServiceKey": "aN2aOKkivRPAL7ZlAtz6BKj/QcSYUvEvZVRk80qX0cTYMUEUAiGIx+slDNoLo1feNuxD6cSBgSaMO3B6tp/Zvw==",
           "pageNo": "1",
-          "numOfRows": "20",
+          "numOfRows": "100",
           "type": "JSON",
           "flag": "Y"
         }
@@ -157,12 +157,29 @@
       }
     }
 
+
     //variable to init AJAX calls with url and header, returns a promise
     var ajaxCall = function (url, data) {
       return $.ajax({
         url: url,
         data: data,
+        success: function(){
+          ajaxCallCounter();
+        },
+        error: function(){
+          ajaxCallCounter();
+        }
       })
+    }
+
+    //count ajax calls that have returned values and set requestComplete variable to true if total returns == total calls
+    var callCount;
+    function ajaxCallCounter() {
+      callCount +=1;
+      if(callCount == ajaxData.disaster.data.numOfRows){
+        requestComplete = true;
+        infoToMarkers();
+      }
     }
 
     //variable to signal that all ajax calls complete (CURRENTLY NONFUNCTIONAL)
@@ -173,9 +190,10 @@
     window.onload = sendQuery();
     function sendQuery() {
       //reset existing info
+      callCount = -1; //-1 to omit the disaster call
       info = []
       document.getElementById("button").innerText = "Please Wait...";
-      let timer = 20;
+      let timer = 30;
       requestComplete = false;
       let countDown = setInterval(function(){   
       document.getElementById("countdown").innerHTML = timer;     
@@ -186,8 +204,7 @@
         timer-=1;
       }, 1000);
       let getDisaster = ajaxCall(ajaxData.disaster.url, ajaxData.disaster.data);
-      $.when(getDisaster).then(updateFromDisasterResult);
-      setTimeout(infoToMarkers, 20000);
+      $.when(getDisaster).then(updateFromDisasterResult);;
     }
 
     //function upon promise return from Disaster ajax call
@@ -200,7 +217,9 @@
       for (let i = 0; i < disasterInfo.length; i++) {
         //init a variable to do ajax call for each result
         let tempAjaxGeo = ajaxData.geocacher;
-        tempAjaxGeo.data.query = disasterInfo[i].location_name;
+        let query = JSON.parse(JSON.stringify(disasterInfo[i].location_name).replace("전체", ""));
+        tempAjaxGeo.data.query = query;
+        console.log(tempAjaxGeo.data.query);
         let getGeocache = ajaxCall(tempAjaxGeo.url, tempAjaxGeo.data);
         //final format to eventually output to info
         let finalObj = {
@@ -254,7 +273,6 @@
       }
       attachInfoToMarkers();
       map.refresh();
-      requestComplete = true;
     }
 
   </script>
