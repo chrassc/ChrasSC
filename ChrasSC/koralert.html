@@ -132,6 +132,8 @@
         naver.maps.Event.addListener(markers[i], 'click', getClickHandler(i));
       }
     }
+
+
     //START of AJAX code
     //used to store final object-array of all ajax calls disaster call + each iterated Naver MAPS geocacher call)
     var info = [];
@@ -191,7 +193,7 @@
     function sendQuery() {
       //reset existing info
       callCount = -1; //-1 to omit the disaster call
-      info = []
+      info = [];
       document.getElementById("button").innerText = "Please Wait...";
       let timer = 30;
       requestComplete = false;
@@ -219,7 +221,7 @@
         let tempAjaxGeo = ajaxData.geocacher;
         let query = JSON.parse(JSON.stringify(disasterInfo[i].location_name).replace("전체", ""));
         tempAjaxGeo.data.query = query;
-        console.log(tempAjaxGeo.data.query);
+        //console.log(tempAjaxGeo.data.query);
         let getGeocache = ajaxCall(tempAjaxGeo.url, tempAjaxGeo.data);
         //final format to eventually output to info
         let finalObj = {
